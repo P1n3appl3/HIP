@@ -12,7 +12,7 @@ def drawHex(surface, color, layout, hex, width=0):
         pygame.draw.aalines(surface, color, width, polygonCorners(layout, hex))
 
 def drawBoard(surface, outlineColor, hexColor, layout, board):
-    color = (hexColor, tuple([min(i + 60, 255) for i in hexColor]), tuple([max(i - 60, 0) for i in hexColor]))
+    color = (hexColor, tuple([min(i + 60, 255) for i in hexColor]), tuple([max(i - 40, 0) for i in hexColor]))
     for h in board:
         drawHex(surface, color[sign(board[h])], layout, h)
         if abs(board[h]) == 2:
@@ -39,30 +39,25 @@ b = createHexBoard(boardSize)
 turn = 1
 selected = None
 selectedColor = None
-bgColor = (0,255,255)
-boardColor = (0,128,0)
+holdingPiece = False
+bgColor = (60, 71, 77)
+boardColor = (64,128,172)
 
 while True:
     windowSurface.fill(bgColor)
+
     pos = pygame.mouse.get_pos()
     current = pixelToHex(l, Point(pos[0], pos[1]))
     drawBoard(windowSurface, bgColor, boardColor, l, b)
     if selected != None:
-        drawHex(windowSurface, selectedColor, l, pixelToHex(l, Point(pos[0], pos[1]), False))
-    # drawHex(windowSurface, (145, 170, 100), l, current)
-    # for h in hexNeighbors(current, boardSize):
-    #     if b[h] == 0:
-    #         drawHex(windowSurface, (230, 170, 100), l, h)
-    # for h in b:
-    #     # print coords
-    #     #textsurface = font.render(', '.join([str(i) for i in h]), False, (255, 255, 255))
-    #     textsurface = font.render(str(b[h]), False, (255, 255, 255))
-    #     textPos = hexToPixel(l, h)
-    #     textSize = textsurface.get_rect()
-    #     windowSurface.blit(textsurface, (textPos.x - textSize.width / 2, textPos.y - textSize.height / 2))
-
+        if holdingPiece:
+            c = (None, 0, 255)[sign(b[selected])]
+            pygame.draw.circle(windowSurface, (c, c, c), pos, int(l.size[0]/2))
+        else:
+            drawHex(windowSurface, selectedColor, l, pixelToHex(l, Point(pos[0], pos[1]), False))
 
     pygame.display.update()
+
     for event in pygame.event.get():
         if event.type == pygame.MOUSEBUTTONDOWN:
             if current in b:
@@ -71,15 +66,26 @@ while True:
                     selectedColor = (boardColor, tuple([min(i + 60, 255) for i in boardColor]), tuple([max(i - 60, 0) for i in boardColor]))[sign(b[current])]
                     b[selected] -= 1
                 elif sign(b[current]) == turn:
-                    pass #pick up piece
+                    selected = current
+                    b[current] -= sign(b[current])
+                    holdingPiece = True
+                    print "pick up piece"
             print "click", selected
         elif event.type == pygame.MOUSEBUTTONUP:
             if selected != None:
-                if -2 < b[current] < 1: #move is valid
-                    b[current] += 1
+                if holdingPiece:
+                    if current in hexNeighbors(selected, boardSize) and sign(b[selected]) == b[current]:
+                        b[current] += sign(selected)
+                        print "place piece"
+                    else:
+                        b[selected] += sign(selected)
                 else:
-                    b[selected] += 1
-                selected = None
+                    if current in b and -2 < b[current] < 1: #move is valid
+                        b[current] += 1
+                    else:
+                        b[selected] += 1
+            selected = None
+            holdingPiece = False
             print "release"
         elif event.type == pygame.QUIT:
             pygame.quit()
