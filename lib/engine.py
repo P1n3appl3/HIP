@@ -1,4 +1,6 @@
-import sys, math, collections
+import sys
+import math
+import collections
 
 Hex = collections.namedtuple("Hex", ["q", "r", "s"])
 
@@ -8,42 +10,37 @@ Orientation = collections.namedtuple("Orientation", ["f0", "f1", "f2", "f3", "b0
 
 Layout = collections.namedtuple("Layout", ["orientation", "size", "origin"])
 
+
 def sign(x): return 1 if x > 0 else 0 if x == 0 else -1
+
 
 def addHex(a, b):
     return Hex(a.q + b.q, a.r + b.r, a.s + b.s)
 
+
 def subHex(a, b):
     return Hex(a.q + b.q, a.r + b.r, a.s + b.s)
+
 
 def hexDirection(direction):
     return [Hex(1, 0, -1), Hex(1, -1, 0), Hex(0, -1, 1), Hex(-1, 0, 1), Hex(-1, 1, 0), Hex(0, 1, -1)][direction]
 
+
 def hexNeighbor(hex, direction):
     return addHex(hex, hexDirection(direction))
+
 
 def hexLength(hex):
     return (abs(hex.q) + abs(hex.r) + abs(hex.s)) // 2
 
+
 def hexDistance(a, b):
     return hexLength(subHex(a, b))
 
-def hexNeighbors(hex, size = sys.maxint, teleports = True):
-    temp = [i for i in [hexNeighbor(hex, j) for j in range(6)] if hexDistance(i, Hex(0,0,0)) <= size]
-    if teleports:
-        if hex == Hex(-size, size, 0):
-            temp.append(Hex(0, size, -size))
-        elif hex == Hex(0, size, -size):
-            temp.append(Hex(-size, size, 0))
-        elif hex == Hex(0, -size, size):
-            temp.append(Hex(size, -size, 0))
-        elif hex == Hex(size, -size, 0):
-            temp.append(Hex(0, -size, size))
-        elif hex == Hex(size, 0, -size):
-            temp.append(Hex(-size, 0, size))
-        elif hex == Hex(-size, 0, size):
-            temp.append(Hex(size, 0, -size))
-    return temp
+
+def hexNeighbors(hex):
+    return [hexNeighbor(hex, j) for j in range(6)]
+
 
 def hexRound(h):
     q = int(round(h.q))
@@ -61,19 +58,6 @@ def hexRound(h):
             s = -q - r
     return Hex(q, r, s)
 
-def createHexBoard(size):
-    board = {}
-    for q in range(-size, size+1):
-        for r in range(-size, size+1):
-            for s in range(-size, size+1):
-                if q+r+s == 0:
-                    if r == size:
-                        board[Hex(q,r,s)] = 2
-                    elif r == -size:
-                        board[Hex(q,r,s)] = -2
-                    else:
-                        board[Hex(q,r,s)] = 0
-    return board
 
 def hexToPixel(layout, h):
     M = layout.orientation
@@ -83,7 +67,8 @@ def hexToPixel(layout, h):
     y = (M.f2 * h.q + M.f3 * h.r) * size.y
     return Point(x + origin.x, y + origin.y)
 
-def pixelToHex(layout, p, round = True):
+
+def pixelToHex(layout, p, round=True):
     M = layout.orientation
     size = layout.size
     origin = layout.origin
@@ -94,11 +79,13 @@ def pixelToHex(layout, p, round = True):
         return hexRound(Hex(q, r, -q - r))
     return Hex(q, r, -q - r)
 
+
 def hexCornerOffset(layout, corner):
     M = layout.orientation
     size = layout.size
     angle = 2.0 * math.pi * (M.startAngle - corner) / 6
     return Point(size.x * math.cos(angle), size.y * math.sin(angle))
+
 
 def polygonCorners(layout, h):
     corners = []

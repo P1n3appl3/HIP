@@ -2,3 +2,4 @@ tile color half base on half way between player colors
 grid color inverse background
 tap or drag move
 ai iterative deepening min max tree in another thread
+file format for archiving game (maybe bit pack hex struct)
