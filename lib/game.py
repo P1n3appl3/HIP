@@ -36,13 +36,13 @@ def getNeighbors(hex):
 
 
 def inHomeRow(hex, turn):
-    return r == BOARD_SIZE * turn
+    return hex.r == BOARD_SIZE * turn
 
 
 def getPieceMoves(board, hex, turn):
     moves = []
-    for i in getNeighbors(board, hex):
-        if board[i] == turn and not inHomeRow(board[i], turn):
+    for i in getNeighbors(hex):
+        if board[i] == turn and (not inHomeRow(i, turn) or inHomeRow(hex, turn)):
             moves.append(i)
     return moves
 
@@ -51,7 +51,7 @@ def getMoves(board, turn):
     moves = []
     for h in board:
         if board[h] == 2 * turn:
-            moves += [Move(board[h], i) for i in getPieceMoves(board, board[h], turn)]
+            moves += [Move(board[h], i) for i in getPieceMoves(board, h, turn)]
     return moves
 
 
@@ -65,7 +65,7 @@ def canMove(board, turn):
 
 def piecePickup(board, hex, turn):
     if hex in board and board[hex] == 2 * turn and canMovePiece(board, hex, turn):
-        board[hex] -= turn * 2 - 1
+        board[hex] -= sign(turn)
         return True
     return False
 
@@ -73,15 +73,16 @@ def piecePickup(board, hex, turn):
 # assumes that move.start is valid
 def piecePlace(board, move, turn):
     if move.end in board and board[move.end] == turn and move.end in getNeighbors(move.start):
-        board[move.end] += turn * 2 - 1
+        board[move.end] = 2 * sign(turn)
         return True
+    board[move.start] += turn
     return False
 
 
 def hexPickup(board, hex, turn, movedPiece):
-    if hex in board and -1 < board[hex] <= 1 and not inHomeRow(hex):
+    if hex in board and -1 < board[hex] <= 1 and not inHomeRow(hex, turn):
         board[hex] -= 1
-        if movedPiece or canMove(board, turn):
+        if movedPiece or turn == 1 or canMove(board, turn):
             return True
         board[hex] += 1
     return False
@@ -89,9 +90,18 @@ def hexPickup(board, hex, turn, movedPiece):
 
 # assumes that move.start is valid
 def hexPlace(board, move, turn, movedPiece):
-    if move.end in board and -1 <= board[move.end] < 1 and not inHomeRow(move.end):
+    if move.end in board and -1 <= board[move.end] < 1 and not inHomeRow(move.end, turn) and move.start != move.end:
         board[move.end] += 1
         if movedPiece or canMove(board, turn):
             return True
+        board[move.end] -= 1
     board[move.start] += 1
     return False
+
+
+def getThreatened(board, turn):
+    temp = []
+    for h in board:
+        if board[h] == -2 * turn and [board[i] for i in getNeighbors(h)].count(2 * turn) >= 2:
+            temp.append(h)
+    return temp
