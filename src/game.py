@@ -1,8 +1,9 @@
 from engine import *
+from config import *
 
 Move = collections.namedtuple("Move", ["start", "end"])
 
-BOARD_SIZE = 3
+FullMove = collections.namedtuple("FullMove", ["hex", "piece"])
 
 
 def createBoard():
@@ -72,7 +73,7 @@ def piecePickup(board, hex, turn):
 
 # assumes that move.start is valid
 def piecePlace(board, move, turn):
-    if move.end in board and board[move.end] == turn and move.end in getNeighbors(move.start):
+    if move.end in board and board[move.end] == turn and (not inHomeRow(move.end, turn) or inHomeRow(move.start, turn)) and move.end in getNeighbors(move.start):
         board[move.end] = 2 * sign(turn)
         return True
     board[move.start] += turn
@@ -105,3 +106,13 @@ def getThreatened(board, turn):
         if board[h] == -2 * turn and [board[i] for i in getNeighbors(h)].count(2 * turn) >= 2:
             temp.append(h)
     return temp
+
+
+def hasWon(board, turn):
+    enemyHasPiece = False
+    for h in board:
+        if board[h] == -2 * turn:
+            enemyHasPiece = True
+        if board[h] == 2 * turn and inHomeRow(h, -turn):
+            return True
+    return not enemyHasPiece
