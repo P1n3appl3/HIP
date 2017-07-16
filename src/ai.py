@@ -8,7 +8,80 @@ class FullMove(collections.namedtuple("FullMove", ["first", "second"])):
     def __repr__(self):
         return '{' + str(self.first) + ' then ' + str(self.second) + '}'
 
-GameState = collections.namedtuple("GameState", ["board", "turn", "children"])
+
+class GameState():
+
+    def __init__(self, b, t):
+        self.children = []
+        self.board = b
+        self.turn = t
+
+    def countStates(self):
+        if self.children == []:
+            return 1
+        return sum(i.countStates() for i in self.children)
+
+    def __repr__(self):
+        return str(self.countStates()) + " total states"
+
+    def score(self):
+        temp = hasWon(getPieces(self.board))
+        if temp != 0:
+            return 1000 * temp
+        temp = 0
+        pieces = getPieces(self.board)
+        furthest = [-BOARD_SIZE, BOARD_SIZE]
+        avg = [0, 0]
+        for i in range(2):
+            temp += 100 * (i * 2 - 1) * len(pieces[i])
+            for p in pieces[i]:
+                avg[i] += abs((i * 2 - 1) * BOARD_SIZE - p.r)
+                if p.r > furthest[i] and i == 0 or p.r < furthest[i] and i == 1:
+                    furthest[i] = p.r
+            temp += (i * 2 - 1) * avg[i] / float(len(pieces[i]))
+            temp += 10 * (i * 2 - 1) * abs((i * 2 - 1) * BOARD_SIZE - furthest[i])
+        return temp
+
+    def evaluate(self, head=False):
+        if self.children == []:
+            return self.score()
+        bestScore = -self.turn * sys.maxint
+        bestMove = None
+        for i in self.children:
+            temp = i.evaluate()
+            if self.turn == 1 and temp > bestScore or self.turn == -1 and temp < bestScore:
+                bestScore = temp
+                bestMove = i
+        if head:
+            return bestMove
+        return bestScore
+
+    def executeMove(self, move):
+        temp = self.board.copy()
+        for i in move:
+            if type(i) == Hex:  # capture
+                temp[i] -= sign(temp[i])
+            elif abs(self.board[i.start]) == 2:  # piece move
+                temp[i.start] -= sign(temp[i.start])
+                temp[i.end] += sign(temp[i.start])
+            else:  # hex move
+                temp[i.start] -= 1
+                temp[i.end] += 1
+        return temp
+
+    def deepen(self):
+        if self.children == []:
+            self.children = [GameState(self.executeMove(i), -self.turn) for i in getFullMoves(self.board, self.turn, getPieces(self.board))]
+            return
+        for i in self.children:
+            i.deepen()
+
+
+def updatestateTree(state, board):
+    for i in state.children:
+        if board == i.board:
+            i.deepen()
+            return i
 
 
 def getHexMoves(board, hex, turn):
@@ -70,50 +143,3 @@ def getFullMoves(board, turn, pieces):
         for j in hexMoves + pieceMoves:
             moves.append(FullMove(i, j))
     return moves
-
-
-def score(state):
-    temp = hasWon(getPieces(state.board))
-    if temp != 0:
-        return temp * sys.maxint
-    temp = 0
-    pieces = getPieces(state.board)
-    furthest = [-BOARD_SIZE, BOARD_SIZE]
-    avg = [0, 0]
-    for i in range(2):
-        temp += 100 * (i * 2 - 1) * len(pieces[i])
-        for p in pieces[i]:
-            avg[i] += abs((i * 2 - 1) * BOARD_SIZE - p.r)
-            if p.r > furthest[i] and i == 0 or p.r < furthest[i] and i == 1:
-                furthest[i] = p.r
-        temp += (i * 2 - 1) * avg[i] / float(len(pieces[i]))
-        temp += 10 * (i * 2 - 1) * abs((i * 2 - 1) * BOARD_SIZE - furthest[i])
-    return temp
-
-
-def evaluate(stateTree, head=False):
-    for i in stateTree.children:
-        if stateTree.turn == 1:
-            pass
-
-
-def executeMove(board, move):
-    temp = board.copy()
-    for i in move:
-        if type(i) == Hex:  # capture
-            temp[i] -= sign(temp[i])
-        elif abs(board[i.start]) == 2:  # piece move
-            temp[i.start] -= sign(temp[i.start])
-            temp[i.end] += sign(temp[i.start])
-        else:  # hex move
-            temp[i.start] -= 1
-            temp[i.end] += 1
-    return board
-
-
-def deepen(state):
-    if state.children == []:
-        state.children = [GameState(executeMove(state.board, i), not state.turn, []) for i in getFullMoves(state.board, state.turn)]
-        return
-    for i in state.children:
-        deepen(i)

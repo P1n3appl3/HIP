@@ -3,6 +3,14 @@ import random
 from src.ai import *
 
 
+def removePiece(hex, pieces):
+    for i in range(len(pieces)):
+        for j in range(len(pieces[i])):
+            if pieces[i][j] == hex:
+                del pieces[i][j]
+                return
+
+
 def drawHex(surface, color, layout, hex, width=0):
     x, y = tuple(hexToPixel(layout, hex))
     if width == 0:
@@ -52,21 +60,21 @@ def main():
     underAttack = []
     selectedColor = None
     holdingPiece = False
-
-    print score(GameState(b, turn, []))
+    currentMove = []
+    pieces = getPieces(b)
+    state = GameState(b, turn)
+    for i in range(AI_DIFFICULTY):
+        state.deepen()
 
     while True:
         clock.tick(FRAME_RATE)  # throttle cpu
         windowSurface.fill(BACKGROUND_COLOR)
         pos = pygame.mouse.get_pos()
         current = pixelToHex(l, Point(pos[0], pos[1]))
-        drawBoard(windowSurface, BACKGROUND_COLOR, BOARD_COLOR, l, b, True)
+        drawBoard(windowSurface, BACKGROUND_COLOR, BOARD_COLOR, l, b)
 
         # Draw held piece
-        if selected == None:
-            if SHOW_LEGAL_MOVE_HINTS:
-                pass
-        else:
+        if selected != None:
             if holdingPiece:
                 pygame.draw.circle(windowSurface, selectedColor, pos, int(l.size[0] / 2))
             else:
@@ -77,7 +85,7 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if current in b:
-                    if not movedHex and hexPickup(b, current, turn, movedPiece or captured, getPieces(b)):
+                    if not movedHex and hexPickup(b, current, turn, movedPiece or captured, pieces):
                         selected = current
                         selectedColor = (BOARD_COLOR, tuple([min(i + 40, 255) for i in BOARD_COLOR]), tuple([max(i - 40, 0) for i in BOARD_COLOR]))[sign(b[current] + 1)]
                     elif not movedPiece and piecePickup(b, current, turn):
@@ -91,30 +99,46 @@ def main():
                 if selected != None:
                     if holdingPiece:
                         movedPiece = piecePlace(b, Move(selected, current), turn)
-                        if hasWon(getPieces(b)) != 0:
+                        if movedPiece:
+                            removePiece(selected, pieces)
+                            pieces[(turn + 1) / 2].append(current)
+                        if hasWon(pieces) != 0:
                             return reset(windowSurface, "GAME OVER", l, b)
                     else:
-                        movedHex = hexPlace(b, Move(selected, current), turn, movedPiece or captured, getPieces(b))
+                        movedHex = hexPlace(b, Move(selected, current), turn, movedPiece or captured, pieces)
                 elif not captured and current in underAttack:
                     b[current] += turn
                     captured = True
-                    if hasWon(getPieces(b)) != 0:
+                    removePiece(current, pieces)
+                    if hasWon(pieces) != 0:
                         return reset(windowSurface, "GAME OVER", l, b)
+                temp = movedHex + movedPiece + captured
+                if temp == 1 and len(currentMove) == 0 or temp == 2:
+                    if captured:
+                        currentMove.append(current)
+                    else:
+                        currentMove.append(Move(selected, current))
+                if temp == 2:
+                    movedHex = False
+                    movedPiece = False
+                    captured = False
+                    turn = -turn
+                    state = updatestateTree(state, b)
+                    if turn == -1:
+                        print state
+                        state = updatestateTree(state, state.evaluate(True).board)
+                        pieces = getPieces(state.board)
+                        b = state.board
+                        turn = -turn
+                    currentMove = []
+                    underAttack = getThreatened(turn, pieces)
+                    print "Black's" if turn == 1 else "White's",
+                    print "Turn"
                 selected = None
                 holdingPiece = False
             elif event.type == pygame.QUIT:
                 pygame.quit()
                 return False
-
-            if movedHex + movedPiece + captured == 2:
-                movedHex = False
-                movedPiece = False
-                captured = False
-                turn = -turn
-                underAttack = getThreatened(turn, getPieces(b))
-                print "Black's" if turn == 1 else "White's",
-                print "Turn"
-                print score(GameState(b, turn, []))
 
 if __name__ == '__main__':
     pygame.init()
