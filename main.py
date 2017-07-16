@@ -11,14 +11,17 @@ def drawHex(surface, color, layout, hex, width=0):
         pygame.draw.aalines(surface, color, width, polygonCorners(layout, hex))
 
 
-def drawBoard(surface, outlineColor, hexColor, layout, board):
+def drawBoard(surface, outlineColor, hexColor, layout, board, coords = False):
     color = (hexColor, tuple([min(i + 40, 255) for i in hexColor]), tuple([max(i - 40, 0) for i in hexColor]))
     for h in board:
         drawHex(surface, color[sign(board[h])], layout, h)
+        temp = hexToPixel(layout, h)
         if abs(board[h]) == 2:
             c = (None, 0, 255)[sign(board[h])]
-            temp = hexToPixel(layout, h)
             pygame.draw.circle(surface, (c, c, c), (int(temp.x), int(temp.y)), int(layout.size[0] / 2))
+        if coords:
+            words = pygame.font.SysFont(FONT, 16).render(str(h), 0, HINT_COLOR)
+            surface.blit(words, (temp.x - words.get_width() / 2, temp.y - words.get_height() / 2))
     for h in board:
         drawHex(surface, outlineColor, layout, h, 2)
 
@@ -57,7 +60,7 @@ def main():
         windowSurface.fill(BACKGROUND_COLOR)
         pos = pygame.mouse.get_pos()
         current = pixelToHex(l, Point(pos[0], pos[1]))
-        drawBoard(windowSurface, BACKGROUND_COLOR, BOARD_COLOR, l, b)
+        drawBoard(windowSurface, BACKGROUND_COLOR, BOARD_COLOR, l, b, True)
 
         # Draw held piece
         if selected == None:
@@ -109,10 +112,9 @@ def main():
                 captured = False
                 turn = -turn
                 underAttack = getThreatened(turn, getPieces(b))
-                print "Black's" if turn == -1 else "White's",
+                print "Black's" if turn == 1 else "White's",
                 print "Turn"
                 print '\n'.join(str(i) for i in getFullMoves(b, turn, getPieces(b)))
-
 
 if __name__ == '__main__':
     pygame.init()

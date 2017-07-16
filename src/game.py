@@ -22,18 +22,9 @@ def createBoard():
 
 def getNeighbors(hex):
     temp = [i for i in hexNeighbors(hex) if hexDistance(i, Hex(0, 0, 0)) <= BOARD_SIZE]
-    if hex == Hex(-BOARD_SIZE, BOARD_SIZE, 0):
-        temp.append(Hex(0, BOARD_SIZE, -BOARD_SIZE))
-    elif hex == Hex(0, BOARD_SIZE, -BOARD_SIZE):
-        temp.append(Hex(-BOARD_SIZE, BOARD_SIZE, 0))
-    elif hex == Hex(0, -BOARD_SIZE, BOARD_SIZE):
-        temp.append(Hex(BOARD_SIZE, -BOARD_SIZE, 0))
-    elif hex == Hex(BOARD_SIZE, -BOARD_SIZE, 0):
-        temp.append(Hex(0, -BOARD_SIZE, BOARD_SIZE))
-    elif hex == Hex(BOARD_SIZE, 0, -BOARD_SIZE):
-        temp.append(Hex(-BOARD_SIZE, 0, BOARD_SIZE))
-    elif hex == Hex(-BOARD_SIZE, 0, BOARD_SIZE):
-        temp.append(Hex(BOARD_SIZE, 0, -BOARD_SIZE))
+    for i in (Hex(-BOARD_SIZE, BOARD_SIZE, 0),Hex(0, BOARD_SIZE, -BOARD_SIZE),Hex(0, -BOARD_SIZE, BOARD_SIZE),Hex(BOARD_SIZE, -BOARD_SIZE, 0),Hex(BOARD_SIZE, 0, -BOARD_SIZE),Hex(-BOARD_SIZE, 0, BOARD_SIZE)):
+        if hex == i and i not in temp:
+            temp.append(i)
     return temp
 
 
