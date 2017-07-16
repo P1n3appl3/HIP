@@ -2,7 +2,10 @@ import sys
 import math
 import collections
 
-Hex = collections.namedtuple("Hex", ["q", "r", "s"])
+class Hex(collections.namedtuple("Hex", ["q", "r", "s"])):
+    __slots__ = ()
+    def __repr__(self):
+        return '(' + str(self.q) + ',' + str(self.r) + ',' + str(self.s) + ')'
 
 Point = collections.namedtuple("Point", ["x", "y"])
 

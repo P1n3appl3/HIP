@@ -1,6 +1,6 @@
 import pygame
 import random
-from src.game import *
+from src.ai import *
 
 
 def drawHex(surface, color, layout, hex, width=0):
@@ -22,6 +22,7 @@ def drawBoard(surface, outlineColor, hexColor, layout, board):
     for h in board:
         drawHex(surface, outlineColor, layout, h, 2)
 
+
 def reset(surface, text, layout, board):
     words = pygame.font.SysFont(FONT, FONT_SIZE).render(text, 0, TEXT_COLOR)
     while True:
@@ -35,6 +36,7 @@ def reset(surface, text, layout, board):
             elif event.type == pygame.QUIT:
                 return False
 
+
 def main():
     l = Layout(Orientation(math.sqrt(3.0), math.sqrt(3.0) / 2.0, 0.0, 3.0 / 2.0, math.sqrt(3.0) / 3.0, -1.0 / 3.0, 0.0, 2.0 / 3.0, 0.5), Point(HEX_SIZE, HEX_SIZE), Point(SCREEN_WIDTH / 2., SCREEN_HEIGHT / 2.))
     b = createBoard()
@@ -46,6 +48,8 @@ def main():
     underAttack = []
     selectedColor = None
     holdingPiece = False
+
+    print getFullMoves(b, turn, getPieces(b))
 
     while True:
         windowSurface.fill(BACKGROUND_COLOR)
@@ -67,28 +71,28 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if current in b:
-                    if not movedHex and hexPickup(b, current, turn, movedPiece or captured):
+                    if not movedHex and hexPickup(b, current, turn, movedPiece or captured, getPieces(b)):
                         selected = current
-                        selectedColor = (BOARD_COLOR, tuple([min(i + 60, 255) for i in BOARD_COLOR]), tuple([max(i - 60, 0) for i in BOARD_COLOR]))[sign(b[current] + 1)]
+                        selectedColor = (BOARD_COLOR, tuple([min(i + 40, 255) for i in BOARD_COLOR]), tuple([max(i - 40, 0) for i in BOARD_COLOR]))[sign(b[current] + 1)]
                     elif not movedPiece and piecePickup(b, current, turn):
                         selected = current
                         selectedColor = tuple([(None, 0, 255)[turn]] * 3)
                         holdingPiece = True
-                    elif not captured and current in underAttack:
-                        b[current] += turn
-                        captured = True
-                        if hasWon(b, turn):
-                            return reset(windowSurface, "VICTORY", l, b)
                     else:
                         print "invalid pickup"
             elif event.type == pygame.MOUSEBUTTONUP:
                 if selected != None:
                     if holdingPiece:
                         movedPiece = piecePlace(b, Move(selected, current), turn)
-                        if hasWon(b, turn):
-                            return reset(windowSurface, "VICTORY", l, b)
+                        if hasWon(getPieces(b)) != 0:
+                            return reset(windowSurface, "GAME OVER", l, b)
                     else:
-                        movedHex = hexPlace(b, Move(selected, current), turn, movedPiece or captured)
+                        movedHex = hexPlace(b, Move(selected, current), turn, movedPiece or captured, getPieces(b))
+                elif not captured and current in underAttack:
+                    b[current] += turn
+                    captured = True
+                    if hasWon(getPieces(b)) != 0:
+                        return reset(windowSurface, "GAME OVER", l, b)
                 selected = None
                 holdingPiece = False
             elif event.type == pygame.QUIT:
@@ -96,17 +100,18 @@ def main():
                 return False
 
             if movedHex + movedPiece + captured == 2:
+                print getFullMoves(b, turn, getPieces(b))
                 movedHex = False
                 movedPiece = False
                 captured = False
                 turn = -turn
-                underAttack = getThreatened(b, turn)
+                underAttack = getThreatened(turn, getPieces(b))
                 print "switch turn"
 
 
 if __name__ == '__main__':
     pygame.init()
-    windowSurface = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+    windowSurface = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption('Hexagonal Iso-Path')
     while main():
         pass

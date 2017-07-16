@@ -1,9 +1,10 @@
 from engine import *
 from config import *
 
-Move = collections.namedtuple("Move", ["start", "end"])
-
-FullMove = collections.namedtuple("FullMove", ["hex", "piece"])
+class Move(collections.namedtuple("Move", ["start", "end"])):
+    __slots__ = ()
+    def __repr__(self):
+        return str(self.start)+'->'+str(self.end)
 
 
 def createBoard():
@@ -48,11 +49,10 @@ def getPieceMoves(board, hex, turn):
     return moves
 
 
-def getMoves(board, turn):
+def getMoves(board, turn, pieces):
     moves = []
-    for h in board:
-        if board[h] == 2 * turn:
-            moves += [Move(board[h], i) for i in getPieceMoves(board, h, turn)]
+    for i in pieces[(turn + 1) / 2]:
+        moves += [Move(i, j) for j in getPieceMoves(board, i, turn)]
     return moves
 
 
@@ -60,59 +60,75 @@ def canMovePiece(board, hex, turn):
     return len(getPieceMoves(board, hex, turn)) > 0
 
 
-def canMove(board, turn):
-    return len(getMoves(board, turn)) > 0
+def canMove(board, turn, pieces):
+    return len(getMoves(board, turn, pieces)) > 0
 
 
-def piecePickup(board, hex, turn):
+def piecePickup(board, hex, turn, changeBoard=True):
     if hex in board and board[hex] == 2 * turn and canMovePiece(board, hex, turn):
-        board[hex] -= sign(turn)
+        if changeBoard:
+            board[hex] -= sign(turn)
         return True
     return False
 
 
 # assumes that move.start is valid
-def piecePlace(board, move, turn):
-    if move.end in board and board[move.end] == turn and (not inHomeRow(move.end, turn) or inHomeRow(move.start, turn)) and move.end in getNeighbors(move.start):
-        board[move.end] = 2 * sign(turn)
+def piecePlace(board, move, turn, changeBoard=True):
+    if move.end in getPieceMoves(board, move.start, turn):
+        if changeBoard:
+            board[move.end] = 2 * sign(turn)
         return True
-    board[move.start] += turn
+    if changeBoard:
+        board[move.start] += turn
     return False
 
 
-def hexPickup(board, hex, turn, movedPiece):
+def hexPickup(board, hex, turn, movedPiece, pieces, changeBoard=True):
     if hex in board and -1 < board[hex] <= 1 and not inHomeRow(hex, turn):
         board[hex] -= 1
-        if movedPiece or turn == 1 or canMove(board, turn):
+        if movedPiece or turn == 1 or canMove(board, turn, pieces):
+            if not changeBoard:
+                board[hex] += 1
             return True
         board[hex] += 1
     return False
 
 
 # assumes that move.start is valid
-def hexPlace(board, move, turn, movedPiece):
+def hexPlace(board, move, turn, movedPiece, pieces, changeBoard=True):
     if move.end in board and -1 <= board[move.end] < 1 and not inHomeRow(move.end, turn) and move.start != move.end:
         board[move.end] += 1
-        if movedPiece or canMove(board, turn):
+        if movedPiece or canMove(board, turn, pieces):
+            if not changeBoard:
+                board[move.end] -= 1
             return True
         board[move.end] -= 1
-    board[move.start] += 1
+    if changeBoard:
+        board[move.start] += 1
     return False
 
 
-def getThreatened(board, turn):
-    temp = []
+def getPieces(board):
+    pieces = ([], [])
     for h in board:
-        if board[h] == -2 * turn and [board[i] for i in getNeighbors(h)].count(2 * turn) >= 2:
-            temp.append(h)
+        if abs(board[h]) == 2:
+            pieces[(board[h] + 2) / 4].append(h)
+    return pieces
+
+
+def getThreatened(turn, pieces):
+    temp = []
+    for i in pieces[(-turn + 1) / 2]:
+        if [j in pieces[(turn + 1) / 2] for j in getNeighbors(i)].count(True) >= 2:
+            temp.append(i)
     return temp
 
 
-def hasWon(board, turn):
-    enemyHasPiece = False
-    for h in board:
-        if board[h] == -2 * turn:
-            enemyHasPiece = True
-        if board[h] == 2 * turn and inHomeRow(h, -turn):
-            return True
-    return not enemyHasPiece
+def hasWon(pieces):
+    for i in range(2):
+        if pieces[i] == []:
+            return i * 2 - 1
+        for j in pieces[i]:
+            if inHomeRow(j, -(i * 2 - 1)):
+                return i * 2 - 1
+    return 0
