@@ -11,7 +11,7 @@ def drawHex(surface, color, layout, hex, width=0):
         pygame.draw.aalines(surface, color, width, polygonCorners(layout, hex))
 
 
-def drawBoard(surface, outlineColor, hexColor, layout, board, coords = False):
+def drawBoard(surface, outlineColor, hexColor, layout, board, coords=False):
     color = (hexColor, tuple([min(i + 40, 255) for i in hexColor]), tuple([max(i - 40, 0) for i in hexColor]))
     for h in board:
         drawHex(surface, color[sign(board[h])], layout, h)
@@ -53,10 +53,10 @@ def main():
     selectedColor = None
     holdingPiece = False
 
-    print '\n'.join(str(i) for i in getFullMoves(b, turn, getPieces(b)))
+    print score(GameState(b, turn, []))
 
     while True:
-        clock.tick(FRAME_RATE) # throttle cpu
+        clock.tick(FRAME_RATE)  # throttle cpu
         windowSurface.fill(BACKGROUND_COLOR)
         pos = pygame.mouse.get_pos()
         current = pixelToHex(l, Point(pos[0], pos[1]))
@@ -85,7 +85,7 @@ def main():
                         selectedColor = tuple([(None, 0, 255)[turn]] * 3)
                         holdingPiece = True
                     else:
-                        #failed pickup
+                        # failed pickup
                         pass
             elif event.type == pygame.MOUSEBUTTONUP:
                 if selected != None:
@@ -114,7 +114,7 @@ def main():
                 underAttack = getThreatened(turn, getPieces(b))
                 print "Black's" if turn == 1 else "White's",
                 print "Turn"
-                print '\n'.join(str(i) for i in getFullMoves(b, turn, getPieces(b)))
+                print score(GameState(b, turn, []))
 
 if __name__ == '__main__':
     pygame.init()

@@ -1,10 +1,12 @@
 from engine import *
 from config import *
 
+
 class Move(collections.namedtuple("Move", ["start", "end"])):
     __slots__ = ()
+
     def __repr__(self):
-        return str(self.start)+'->'+str(self.end)
+        return str(self.start) + '->' + str(self.end)
 
 
 def createBoard():
@@ -22,9 +24,13 @@ def createBoard():
 
 def getNeighbors(hex):
     temp = [i for i in hexNeighbors(hex) if hexDistance(i, Hex(0, 0, 0)) <= BOARD_SIZE]
-    for i in (Hex(-BOARD_SIZE, BOARD_SIZE, 0),Hex(0, BOARD_SIZE, -BOARD_SIZE),Hex(0, -BOARD_SIZE, BOARD_SIZE),Hex(BOARD_SIZE, -BOARD_SIZE, 0),Hex(BOARD_SIZE, 0, -BOARD_SIZE),Hex(-BOARD_SIZE, 0, BOARD_SIZE)):
-        if hex == i and i not in temp:
-            temp.append(i)
+    teleports = (Hex(-BOARD_SIZE, BOARD_SIZE, 0), Hex(0, BOARD_SIZE, -BOARD_SIZE), Hex(0, -BOARD_SIZE, BOARD_SIZE), Hex(BOARD_SIZE, -BOARD_SIZE, 0), Hex(BOARD_SIZE, 0, -BOARD_SIZE), Hex(-BOARD_SIZE, 0, BOARD_SIZE))
+    for i in range(6):
+        if hex == teleports[i] and teleports[i] not in temp:
+            if i % 2 == 0:
+                temp.append(teleports[i + 1])
+            else:
+                temp.append(teleports[i - 1])
     return temp
 
 

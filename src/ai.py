@@ -73,16 +73,25 @@ def getFullMoves(board, turn, pieces):
 
 
 def score(state):
-    if hasWon(state.board, not state.turn):
-        return sys.maxint
-    if hasWon(state.board, state.turn):
-        return -sys.maxint
+    temp = hasWon(getPieces(state.board))
+    if temp != 0:
+        return temp * sys.maxint
     temp = 0
-    for h in b:
-        pass
+    pieces = getPieces(state.board)
+    furthest = [-BOARD_SIZE, BOARD_SIZE]
+    avg = [0, 0]
+    for i in range(2):
+        temp += 100 * (i * 2 - 1) * len(pieces[i])
+        for p in pieces[i]:
+            avg[i] += abs((i * 2 - 1) * BOARD_SIZE - p.r)
+            if p.r > furthest[i] and i == 0 or p.r < furthest[i] and i == 1:
+                furthest[i] = p.r
+        temp += (i * 2 - 1) * avg[i] / float(len(pieces[i]))
+        temp += 10 * (i * 2 - 1) * abs((i * 2 - 1) * BOARD_SIZE - furthest[i])
+    return temp
 
 
-def evaluate(stateTree):
+def evaluate(stateTree, head=False):
     for i in stateTree.children:
         if stateTree.turn == 1:
             pass
