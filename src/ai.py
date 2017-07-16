@@ -1,4 +1,5 @@
 from game import *
+from itertools import product
 
 class FullMove(collections.namedtuple("FullMove", ["first", "second"])):
     __slots__ = ()
@@ -22,11 +23,35 @@ def getFullMoves(board, turn, pieces):
     pieceMoves = []
     hexMoves = []
     for i in pieces[(turn + 1) / 2]:
-        pieceMoves += [Move(i, j) for j in getPieceMoves(board, i, turn)]
+        for j in getPieceMoves(board, i, turn):
+            pieceMoves.append(Move(i, j))
+            if turn == 1: # opening hex moves from high spots
+                board[i]-=turn
+                board[j]+=turn
+                if hexPickup(board, i, turn, True, pieces, False):
+                    for k in getHexMoves(board, i, turn):
+                        moves.append(FullMove(pieceMoves[-1], k))
+                board[j]-=turn
+                board[i]+=turn
     for hex in board:
         if hexPickup(board, hex, turn, pieceMoves != [], pieces, False):
-            hexMoves += getHexMoves(board, hex, turn)
-
+            if turn == -1: # opening up hex moves to low spots
+                for i in pieceMoves:
+                    if board[i.start] == -2 and not inHomeRow(i.start, turn):
+                        moves.append(FullMove(i, Move(hex, i.start)))
+            for i in getHexMoves(board, hex, turn):
+                hexMoves.append(i)
+                if turn == -1 and board[i.start] == 0: # opening up spots for low stones
+                    for j in getNeighbors(i.start):
+                        if j in pieces[0]:
+                            moves.append(FullMove(i, Move(j, i.start)))
+                elif turn == 1 and board[i.end] == 0: # opening up spots for high stones
+                    for j in getNeighbors(i.end):
+                        if j in pieces[0]:
+                            moves.append(FullMove(i, Move(j, i.end)))
+    for i in product(hexMoves, pieceMoves):
+        if i[0].start != i[1].end and i[0].end != i[0].end: # hex move would interfere
+            moves.append(FullMove(i[0], i[1]))
     for i in underAttack:
         for j in hexMoves + pieceMoves:
             moves.append(FullMove(i, j))

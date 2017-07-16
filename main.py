@@ -39,6 +39,7 @@ def reset(surface, text, layout, board):
 
 def main():
     l = Layout(Orientation(math.sqrt(3.0), math.sqrt(3.0) / 2.0, 0.0, 3.0 / 2.0, math.sqrt(3.0) / 3.0, -1.0 / 3.0, 0.0, 2.0 / 3.0, 0.5), Point(HEX_SIZE, HEX_SIZE), Point(SCREEN_WIDTH / 2., SCREEN_HEIGHT / 2.))
+    clock = pygame.time.Clock()
     b = createBoard()
     turn = 1
     movedHex = False
@@ -49,14 +50,16 @@ def main():
     selectedColor = None
     holdingPiece = False
 
-    print getFullMoves(b, turn, getPieces(b))
+    print '\n'.join(str(i) for i in getFullMoves(b, turn, getPieces(b)))
 
     while True:
+        clock.tick(FRAME_RATE) # throttle cpu
         windowSurface.fill(BACKGROUND_COLOR)
         pos = pygame.mouse.get_pos()
         current = pixelToHex(l, Point(pos[0], pos[1]))
         drawBoard(windowSurface, BACKGROUND_COLOR, BOARD_COLOR, l, b)
 
+        # Draw held piece
         if selected == None:
             if SHOW_LEGAL_MOVE_HINTS:
                 pass
@@ -79,7 +82,8 @@ def main():
                         selectedColor = tuple([(None, 0, 255)[turn]] * 3)
                         holdingPiece = True
                     else:
-                        print "invalid pickup"
+                        #failed pickup
+                        pass
             elif event.type == pygame.MOUSEBUTTONUP:
                 if selected != None:
                     if holdingPiece:
@@ -100,13 +104,14 @@ def main():
                 return False
 
             if movedHex + movedPiece + captured == 2:
-                print getFullMoves(b, turn, getPieces(b))
                 movedHex = False
                 movedPiece = False
                 captured = False
                 turn = -turn
                 underAttack = getThreatened(turn, getPieces(b))
-                print "switch turn"
+                print "Black's" if turn == -1 else "White's",
+                print "Turn"
+                print '\n'.join(str(i) for i in getFullMoves(b, turn, getPieces(b)))
 
 
 if __name__ == '__main__':
