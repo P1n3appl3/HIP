@@ -1,9 +1,7 @@
 tile color base on half way between player colors
 grid color inverse background
 select and move as alternative to drag
-ai: iterative deepening min max tree in another thread during opposite turn, board scoring heuristic: win > capture > furthest piece > avg distance. maybe take underAttack into account
 file format for archiving game (maybe bit pack hex struct)
 replay viewer
 game clock
-limit framerate / cpu Usage
 HUD

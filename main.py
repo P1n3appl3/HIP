@@ -1,10 +1,5 @@
 import pygame
-import random
-from src.ai import *
-
-AVERAGEGAMELENGTH = 0
-GAMESPLAYED = 0
-AVERAGEMOVES = 0
+from src.game import *
 
 
 def removePiece(hex, pieces):
@@ -53,12 +48,9 @@ def reset(surface, text, layout, board):
 
 
 def main():
-    global AVERAGEGAMELENGTH
-    global GAMESPLAYED
-    global AVERAGEMOVES
+
     b = createBoard()
     turn = 1
-
     l = Layout(Orientation(math.sqrt(3.0), math.sqrt(3.0) / 2.0, 0.0, 3.0 / 2.0, math.sqrt(3.0) / 3.0, -1.0 / 3.0, 0.0, 2.0 / 3.0, 0.5), Point(HEX_SIZE, HEX_SIZE), Point(WINDOW_WIDTH / 2., WINDOW_HEIGHT / 2.))
     clock = pygame.time.Clock()
     movedHex = False
@@ -71,24 +63,6 @@ def main():
     currentMove = []
     pieces = getPieces(b)
 
-    state = GameState(b, turn)
-    state.deepen()
-
-    if P1_AI and P2_AI:
-        possibleMoves = []
-        imagecounter = 0
-        while True:
-            temp = state.evaluate(True)
-            if temp == None:
-                AVERAGEGAMELENGTH += len(possibleMoves)
-                AVERAGEMOVES += sum(possibleMoves) / len(possibleMoves)
-                GAMESPLAYED += 1
-                return reset(windowSurface, "GAME OVER", l, b)
-            state = updatestateTree(state, temp.board)
-            possibleMoves.append(len(state.children))
-
-            b = state.board
-
     while True:
         clock.tick(FRAME_RATE)  # throttle cpu
         windowSurface.fill(BACKGROUND_COLOR)
@@ -98,10 +72,21 @@ def main():
 
         # Draw held piece
         if selected != None:
+            if SHOW_HINTS:
+                for h in b:
+                    if holdingPiece and piecePlace(b, Move(selected, h), turn, False) or not holdingPiece and hexPlace(b, Move(selected, h), turn, movedPiece or captured, pieces, False):
+                        temp = hexToPixel(l, h)
+                        pygame.draw.circle(windowSurface, HINT_COLOR, (int(temp.x), int(temp.y)), int(l.size[0] / 8))
             if holdingPiece:
                 pygame.draw.circle(windowSurface, selectedColor, pos, int(l.size[0] / 2))
             else:
                 drawHex(windowSurface, selectedColor, l, pixelToHex(l, Point(pos[0], pos[1]), False))
+
+        if SHOW_HINTS and selected == None:
+            for h in b:
+                if not movedHex and hexPickup(b, h, turn, movedPiece or captured, pieces, False) or not movedPiece and piecePickup(b, h, turn, False):
+                    temp = hexToPixel(l, h)
+                    pygame.draw.circle(windowSurface, HINT_COLOR, (int(temp.x), int(temp.y)), int(l.size[0] / 8))
 
         pygame.display.update()
 
@@ -146,17 +131,11 @@ def main():
                     movedPiece = False
                     captured = False
                     turn = -turn
-                    # state = updatestateTree(state, b)
-                    # if turn == -1 and P2_AI or turn == 1 and P1_AI:
-                    #     print state
-                    #     state = updatestateTree(state, state.evaluate(True).board)
-                    #     pieces = getPieces(state.board)
-                    #     b = state.board
-                    #     turn = -turn
                     currentMove = []
                     underAttack = getThreatened(turn, pieces)
                     print "Black's" if turn == 1 else "White's",
                     print "Turn"
+                    print getFullMoves(b, turn, pieces)
                 selected = None
                 holdingPiece = False
             elif event.type == pygame.QUIT:
@@ -164,11 +143,9 @@ def main():
 
 if __name__ == '__main__':
     pygame.init()
-    random.seed()
     windowSurface = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     pygame.display.set_caption('Hexagonal Iso-Path')
     while main():
         pass
-    print AVERAGEGAMELENGTH / GAMESPLAYED, GAMESPLAYED, AVERAGEMOVES / GAMESPLAYED
     pygame.quit()
     sys.exit()
