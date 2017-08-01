@@ -1,6 +1,6 @@
 from game import *
 from itertools import product
-
+import random
 
 class FullMove(collections.namedtuple("FullMove", ["first", "second"])):
     __slots__ = ()
@@ -22,14 +22,14 @@ class GameState():
         return sum(i.countStates() for i in self.children)
 
     def __repr__(self):
-        return str(self.countStates()) + " total states"
+        return str(self.countStates())
 
     def score(self):
-        temp = hasWon(getPieces(self.board))
+        pieces = getPieces(self.board)
+        temp = hasWon(pieces)
         if temp != 0:
             return 1000 * temp
         temp = 0
-        pieces = getPieces(self.board)
         furthest = [-BOARD_SIZE, BOARD_SIZE]
         avg = [0, 0]
         for i in range(2):
@@ -43,9 +43,12 @@ class GameState():
         return temp
 
     def evaluate(self, head=False):
-        if self.children == []:
-            return self.score()
         bestScore = -self.turn * sys.maxint
+        if self.children == [] or hasWon(getPieces(self.board)):
+            if head:
+                return None # no moves possible
+            return self.score()
+        return random.choice(self.children)
         bestMove = None
         for i in self.children:
             temp = i.evaluate()

@@ -2,6 +2,10 @@ import pygame
 import random
 from src.ai import *
 
+AVERAGEGAMELENGTH = 0
+GAMESPLAYED = 0
+AVERAGEMOVES = 0
+
 
 def removePiece(hex, pieces):
     for i in range(len(pieces)):
@@ -39,7 +43,7 @@ def reset(surface, text, layout, board):
     while True:
         windowSurface.fill(BACKGROUND_COLOR)
         drawBoard(windowSurface, BACKGROUND_COLOR, BOARD_COLOR, layout, board)
-        surface.blit(words, (SCREEN_WIDTH / 2 - words.get_width() / 2, SCREEN_HEIGHT / 2 - words.get_height() / 2))
+        surface.blit(words, (WINDOW_WIDTH / 2 - words.get_width() / 2, WINDOW_HEIGHT / 2 - words.get_height() / 2))
         pygame.display.update()
         for event in pygame.event.get():
             if event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.KEYDOWN:
@@ -49,10 +53,14 @@ def reset(surface, text, layout, board):
 
 
 def main():
-    l = Layout(Orientation(math.sqrt(3.0), math.sqrt(3.0) / 2.0, 0.0, 3.0 / 2.0, math.sqrt(3.0) / 3.0, -1.0 / 3.0, 0.0, 2.0 / 3.0, 0.5), Point(HEX_SIZE, HEX_SIZE), Point(SCREEN_WIDTH / 2., SCREEN_HEIGHT / 2.))
-    clock = pygame.time.Clock()
+    global AVERAGEGAMELENGTH
+    global GAMESPLAYED
+    global AVERAGEMOVES
     b = createBoard()
     turn = 1
+
+    l = Layout(Orientation(math.sqrt(3.0), math.sqrt(3.0) / 2.0, 0.0, 3.0 / 2.0, math.sqrt(3.0) / 3.0, -1.0 / 3.0, 0.0, 2.0 / 3.0, 0.5), Point(HEX_SIZE, HEX_SIZE), Point(WINDOW_WIDTH / 2., WINDOW_HEIGHT / 2.))
+    clock = pygame.time.Clock()
     movedHex = False
     movedPiece = False
     captured = False
@@ -62,9 +70,24 @@ def main():
     holdingPiece = False
     currentMove = []
     pieces = getPieces(b)
+
     state = GameState(b, turn)
-    for i in range(AI_DIFFICULTY):
-        state.deepen()
+    state.deepen()
+
+    if P1_AI and P2_AI:
+        possibleMoves = []
+        imagecounter = 0
+        while True:
+            temp = state.evaluate(True)
+            if temp == None:
+                AVERAGEGAMELENGTH += len(possibleMoves)
+                AVERAGEMOVES += sum(possibleMoves) / len(possibleMoves)
+                GAMESPLAYED += 1
+                return reset(windowSurface, "GAME OVER", l, b)
+            state = updatestateTree(state, temp.board)
+            possibleMoves.append(len(state.children))
+
+            b = state.board
 
     while True:
         clock.tick(FRAME_RATE)  # throttle cpu
@@ -96,7 +119,7 @@ def main():
                         # failed pickup
                         pass
             elif event.type == pygame.MOUSEBUTTONUP:
-                if selected != None:
+                if selected != None:  # dropping a piece
                     if holdingPiece:
                         movedPiece = piecePlace(b, Move(selected, current), turn)
                         if movedPiece:
@@ -106,7 +129,7 @@ def main():
                             return reset(windowSurface, "GAME OVER", l, b)
                     else:
                         movedHex = hexPlace(b, Move(selected, current), turn, movedPiece or captured, pieces)
-                elif not captured and current in underAttack:
+                elif not captured and current in underAttack:  # capturing a piece
                     b[current] += turn
                     captured = True
                     removePiece(current, pieces)
@@ -123,13 +146,13 @@ def main():
                     movedPiece = False
                     captured = False
                     turn = -turn
-                    state = updatestateTree(state, b)
-                    if turn == -1:
-                        print state
-                        state = updatestateTree(state, state.evaluate(True).board)
-                        pieces = getPieces(state.board)
-                        b = state.board
-                        turn = -turn
+                    # state = updatestateTree(state, b)
+                    # if turn == -1 and P2_AI or turn == 1 and P1_AI:
+                    #     print state
+                    #     state = updatestateTree(state, state.evaluate(True).board)
+                    #     pieces = getPieces(state.board)
+                    #     b = state.board
+                    #     turn = -turn
                     currentMove = []
                     underAttack = getThreatened(turn, pieces)
                     print "Black's" if turn == 1 else "White's",
@@ -137,13 +160,15 @@ def main():
                 selected = None
                 holdingPiece = False
             elif event.type == pygame.QUIT:
-                pygame.quit()
                 return False
 
 if __name__ == '__main__':
     pygame.init()
-    windowSurface = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    random.seed()
+    windowSurface = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     pygame.display.set_caption('Hexagonal Iso-Path')
     while main():
         pass
+    print AVERAGEGAMELENGTH / GAMESPLAYED, GAMESPLAYED, AVERAGEMOVES / GAMESPLAYED
+    pygame.quit()
     sys.exit()
