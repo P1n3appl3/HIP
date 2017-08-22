@@ -9,13 +9,13 @@ class Move(collections.namedtuple("Move", ["start", "end"])):
         return str(self.start) + '->' + str(self.end)
 
 
-def createBoard():
+def createBoard(boardSize):
     board = {}
-    for q in range(-BOARD_SIZE, BOARD_SIZE + 1):
-        for r in range(-BOARD_SIZE, BOARD_SIZE + 1):
-            for s in range(-BOARD_SIZE, BOARD_SIZE + 1):
+    for q in range(-boardSize, boardSize + 1):
+        for r in range(-boardSize, boardSize + 1):
+            for s in range(-boardSize, boardSize + 1):
                 if q + r + s == 0:
-                    if abs(r) == BOARD_SIZE:
+                    if abs(r) == boardSize:
                         board[Hex(q, r, s)] = 2 * sign(r)
                     else:
                         board[Hex(q, r, s)] = 0
@@ -41,7 +41,7 @@ def inHomeRow(hex, turn):
 def getPieceMoves(board, hex, turn):
     moves = []
     for i in getNeighbors(hex):
-        if board[i] == turn and (not inHomeRow(i, turn) or inHomeRow(hex, turn)):
+        if board[i] == turn:
             moves.append(i)
     return moves
 

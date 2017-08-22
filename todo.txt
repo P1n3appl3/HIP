@@ -1,7 +1,11 @@
-tile color base on half way between player colors
-grid color inverse background
-select and move as alternative to drag
-file format for archiving game (maybe bit pack hex struct)
-replay viewer
-game clock
-HUD
+Adaptive graphics:
+    tile color base on half way between player colors
+    grid color inverse background
+    fit to window
+UI:
+    select and move as alternative to drag
+    game clock
+Content:
+    3 player mode
+    AI (again)
+    Networked games (a whole lot of work)

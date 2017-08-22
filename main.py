@@ -1,5 +1,5 @@
 import pygame
-from src.game import *
+from src.replay import *
 
 
 def removePiece(hex, pieces):
@@ -33,7 +33,8 @@ def drawBoard(surface, outlineColor, hexColor, layout, board, coords=False):
         drawHex(surface, outlineColor, layout, h, 2)
 
 
-def reset(surface, text, layout, board):
+def reset(surface, text, layout, board, moveList):
+    createReplay(moveList)
     words = pygame.font.SysFont(FONT, FONT_SIZE).render(text, 0, TEXT_COLOR)
     while True:
         windowSurface.fill(BACKGROUND_COLOR)
@@ -47,9 +48,60 @@ def reset(surface, text, layout, board):
                 return False
 
 
-def main():
+def executeMove(board, move):
+    if type(move) == Hex:  # capture
+        board[move] -= sign(board[move])
+    elif abs(board[move.start]) == 2:  # hex move
+        board[move.start] -= sign(board[move.start])
+        board[move.end] += sign(board[move.start])
+    else:  # piece move
+        board[move.start] -= 1
+        board[move.end] += 1
 
-    b = createBoard()
+
+def revertMove(board, move):
+    if type(move) == Hex:  # capture
+        board[move] += sign(board[move])
+    elif abs(board[move.end]) == 2:  # hex move
+        board[move.start] += sign(board[move.start])
+        board[move.end] -= sign(board[move.start])
+    else:  # piece move
+        board[move.start] += 1
+        board[move.end] -= 1
+
+
+def viewReplay(fileName):
+    bs, moveList = readReplay(fileName)
+    b = createBoard(bs)
+    current = 0
+    l = Layout(Orientation(math.sqrt(3.0), math.sqrt(3.0) / 2.0, 0.0, 3.0 / 2.0, math.sqrt(3.0) / 3.0, -1.0 / 3.0, 0.0, 2.0 / 3.0, 0.5), Point(HEX_SIZE, HEX_SIZE), Point(WINDOW_WIDTH / 2., WINDOW_HEIGHT / 2.))
+    clock = pygame.time.Clock()
+    back = (pygame.K_LEFT, pygame.K_BACKSPACE, pygame.K_ESCAPE)
+    forward = (pygame.K_RIGHT, pygame.K_RETURN, pygame.K_SPACE)
+
+    while True:
+        clock.tick(FRAME_RATE)  # throttle cpu
+        windowSurface.fill(BACKGROUND_COLOR)
+        drawBoard(windowSurface, BACKGROUND_COLOR, BOARD_COLOR, l, b)
+        pygame.display.update()
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key in back:
+                    if current == 0:
+                        continue
+                    current -= 1
+                    revertMove(b, moveList[current])
+                elif event.key in forward:
+                    if current == len(moveList):
+                        continue
+                    executeMove(b, moveList[current])
+                    current += 1
+            if event.type == pygame.QUIT:
+                return
+
+
+def main():
+    b = createBoard(BOARD_SIZE)
     turn = 1
     l = Layout(Orientation(math.sqrt(3.0), math.sqrt(3.0) / 2.0, 0.0, 3.0 / 2.0, math.sqrt(3.0) / 3.0, -1.0 / 3.0, 0.0, 2.0 / 3.0, 0.5), Point(HEX_SIZE, HEX_SIZE), Point(WINDOW_WIDTH / 2., WINDOW_HEIGHT / 2.))
     clock = pygame.time.Clock()
@@ -61,6 +113,7 @@ def main():
     selectedColor = None
     holdingPiece = False
     currentMove = []
+    moveList = []
     pieces = getPieces(b)
 
     while True:
@@ -111,7 +164,11 @@ def main():
                             removePiece(selected, pieces)
                             pieces[(turn + 1) / 2].append(current)
                         if hasWon(pieces) != 0:
-                            return reset(windowSurface, "GAME OVER", l, b)
+                            currentMove.append(Move(selected, current))
+                            if len(currentMove) == 0:
+                                currentMove.append(Move(Hex(0, 0, 0), Hex(0, 0, 0)))
+                            moveList.append(currentMove)
+                            return reset(windowSurface, "GAME OVER", l, b, moveList)
                     else:
                         movedHex = hexPlace(b, Move(selected, current), turn, movedPiece or captured, pieces)
                 elif not captured and current in underAttack:  # capturing a piece
@@ -119,23 +176,23 @@ def main():
                     captured = True
                     removePiece(current, pieces)
                     if hasWon(pieces) != 0:
-                        return reset(windowSurface, "GAME OVER", l, b)
+                        currentMove.append(current)
+                        moveList.append(currentMove)
+                        return reset(windowSurface, "GAME OVER", l, b, moveList)
                 temp = movedHex + movedPiece + captured
                 if temp == 1 and len(currentMove) == 0 or temp == 2:
-                    if captured:
+                    if selected == None:
                         currentMove.append(current)
                     else:
                         currentMove.append(Move(selected, current))
                 if temp == 2:
+                    moveList.append(currentMove)
                     movedHex = False
                     movedPiece = False
                     captured = False
                     turn = -turn
                     currentMove = []
                     underAttack = getThreatened(turn, pieces)
-                    print "Black's" if turn == 1 else "White's",
-                    print "Turn"
-                    print getFullMoves(b, turn, pieces)
                 selected = None
                 holdingPiece = False
             elif event.type == pygame.QUIT:
@@ -144,8 +201,12 @@ def main():
 if __name__ == '__main__':
     pygame.init()
     windowSurface = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-    pygame.display.set_caption('Hexagonal Iso-Path')
-    while main():
-        pass
+    if len(sys.argv) > 1:
+        pygame.display.set_caption("Viewing replay... ")
+        viewReplay(sys.argv[1])
+    else:
+        pygame.display.set_caption("Hexagonal Iso-Path")
+        while main():
+            pass
     pygame.quit()
     sys.exit()
