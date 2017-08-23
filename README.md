@@ -3,9 +3,11 @@
 
 HIP is an interesting board game created by youtuber [pocket83](https://www.youtube.com/user/pocket83). Watch [this video](https://www.youtube.com/watch?v=Wz6q03b8R6U) to see his explanation of the game, its rules, and how to make a physical version from scratch. Huge thanks to Red Blob Games for [this tutorial](http://www.redblobgames.com/grids/hexagons) on hex grid coordinate systems, my original approach would have been disgustingly inelegant.
 
-## Dependencies
+## Installation
 
-Requires python 2.7 and pygame
+1. Install python 2.7.x (latest release) from [here](https://www.python.org/downloads/). The default settings are fine, but if you do mess with it, make sure that pip is included and python gets added to your path.
+2. Install pygame by opening up a shell and typing `pip install pygame`
+3. Have fun playing HIP
 
 ![](assets/red.png)
 
